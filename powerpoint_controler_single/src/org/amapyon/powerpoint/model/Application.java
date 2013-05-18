@@ -1,4 +1,4 @@
-package org.amapyon.powerpoint;
+package org.amapyon.powerpoint.model;
 
 import static org.amapyon.util.OleUtil.getPropertyByName;
 import static org.amapyon.util.OleUtil.invokeByName;
@@ -9,18 +9,17 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.ole.win32.OleAutomation;
 import org.eclipse.swt.ole.win32.OleControlSite;
 import org.eclipse.swt.ole.win32.OleFrame;
+import org.eclipse.swt.ole.win32.Variant;
 import org.eclipse.swt.widgets.Shell;
 
 public class Application {
 	private static Application instance = null;
 	private OleAutomation application = null;
-	private ArrayList<Presentation> presentations = new ArrayList<Presentation>();
 
 	private Application() {}
 
 	private Application(OleAutomation application) {
 		this.application = application;
-		setPresentations();
 	}
 
 	public static Application getInstance() {
@@ -34,29 +33,27 @@ public class Application {
 		return instance;
 	}
 
-	public ArrayList<Presentation> getPresentations() {
-		return presentations;
-	}
-
-	public Presentation getPresentation(int index) {
-		return presentations.get(index);
-	}
-
-	private void setPresentations() {
+	public Presentations getPresentations() {
 		OleAutomation presentations = getPropertyByName(application, "Presentations").getAutomation();
-		int count = getPropertyByName(presentations, "Count").getInt();
-		System.out.println(count);
-
-		for(int i = 1; i <= count; i++) {
-			OleAutomation p = invokeByName(presentations, "Item", i).getAutomation();
-			Presentation presentation = new Presentation(p);
-			this.presentations.add(presentation);
-		}
+		return new Presentations(presentations);
 	}
 
 	public Presentation getActivePresentation() {
-		OleAutomation p = getPropertyByName(application, "ActivePresentation").getAutomation();
+		Variant v = getPropertyByName(application, "ActivePresentation");
+		System.out.println(v);
+		if (v == null) {
+			return null;
+		}
+		OleAutomation p = v.getAutomation();
+		System.out.println("ActivePresentation:" + p);
 		return new Presentation(p);
 	}
+
+	public void quit() {
+		invokeByName(application, "Quit");
+		instance = null;
+
+	}
+
 
 }

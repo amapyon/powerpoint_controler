@@ -1,18 +1,21 @@
-package org.amapyon.powerpoint;
+package org.amapyon.powerpoint.model;
 
 import org.eclipse.swt.ole.win32.OleAutomation;
 import org.eclipse.swt.ole.win32.Variant;
 
 import static org.amapyon.util.OleUtil.*;
 
-public class SlideShow {
+public class SlideShowView {
+	public static final int ppSlideShowBlackScreen = 3;
+	public static final int ppSlideShowWhiteScreen = 4;
+
 	private OleAutomation view = null;
 
-	SlideShow(OleAutomation view) {
+	SlideShowView(OleAutomation view) {
 		this.view = view;
 	}
 
-	public void prev() {
+	public void previous() {
 		invokeByName(view, "Previous");
 	}
 
@@ -21,15 +24,15 @@ public class SlideShow {
 
 	}
 
-	public void jump(int page) {
+	public void gotoSlide(int page) {
 		invokeByName(view, "GotoSlide", page);
 	}
 
-	public void quit() {
+	public void exit() {
 		invokeByName(view, "Exit");
 	}
 
-	public int getCurrentPage() {
+	public int getCurrentShowPosition() {
 		Variant v = getPropertyByName(view, "CurrentShowPosition");
 		return v.getInt();
 	}
@@ -37,15 +40,14 @@ public class SlideShow {
 	public int getState() {
 		Variant v = getPropertyByName(view, "State");
 		return v.getInt();
-
 	}
 
 	public void blackScreen() {
-		setPropertyByName(view, "State", 3); //ppSlideShowBlackScreen
+		setPropertyByName(view, "State", ppSlideShowBlackScreen);
 	}
 
 	public void whiteScreen() {
-		setPropertyByName(view, "State", 4); //ppSlideShowWhiteScreen
+		setPropertyByName(view, "State", ppSlideShowWhiteScreen);
 	}
 
 	public void first() {

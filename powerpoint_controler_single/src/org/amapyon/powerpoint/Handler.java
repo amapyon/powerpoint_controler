@@ -9,12 +9,16 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import org.amapyon.powerpoint.model.Application;
+import org.amapyon.powerpoint.model.Presentation;
+import org.amapyon.powerpoint.model.SlideShowView;
+
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 public class Handler implements HttpHandler {
-	private static SlideShow slideShow = null;
+	private static SlideShowView slideShow = null;
 	private static int lastPage = 0;
 
 	@Override
@@ -72,19 +76,22 @@ public class Handler implements HttpHandler {
 			}
 
 			if ("START".equals(command)) {
-				slideShow = Application.getInstance().getActivePresentation().run();
+				Presentation p = Application.getInstance().getActivePresentation();
+				if (p != null) {
+					slideShow = p.run();
+				}
 			} else if ("CONT".equals(command)) {
 				slideShow = Application.getInstance().getActivePresentation().run();
-				slideShow.jump(lastPage);
+				slideShow.gotoSlide(lastPage);
 			} else if ("STOP".equals(command)) {
 				if (slideShow != null) {
-					lastPage = slideShow.getCurrentPage();
-					slideShow.quit();
+					lastPage = slideShow.getCurrentShowPosition();
+					slideShow.exit();
 					return lastPage;
 				}
 			} else if ("PREV".equals(command)) {
 				if (slideShow != null) {
-					slideShow.prev();
+					slideShow.previous();
 				}
 			} else if ("NEXT".equals(command)) {
 				if (slideShow != null) {
@@ -93,7 +100,7 @@ public class Handler implements HttpHandler {
 			} else if ("JUMP".equals(command)) {
 				if (slideShow != null) {
 					int page = Integer.parseInt(getParameter(query, "PAGE"));
-					slideShow.jump(page);
+					slideShow.gotoSlide(page);
 				}
 			} else if ("BLACK".equals(command)) {
 				if (slideShow != null) {
@@ -121,7 +128,7 @@ public class Handler implements HttpHandler {
 			e.printStackTrace();
 			return 0;
 		}
-		return slideShow.getCurrentPage();
+		return slideShow.getCurrentShowPosition();
 	}
 
 	private String getParameter(String query, String name) {

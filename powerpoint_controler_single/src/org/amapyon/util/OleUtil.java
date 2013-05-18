@@ -12,6 +12,10 @@ public class OleUtil {
 		return auto.getProperty(id(auto, name), new Variant[]{new Variant(intValue)});
 	}
 
+	public static Variant getPropertyByName(OleAutomation auto, String name, Variant[] vArgs) {
+		return auto.getProperty(id(auto, name), vArgs);
+	}
+
 	public static boolean setPropertyByName(OleAutomation auto, String name, int intValue) {
 		return auto.setProperty(id(auto, name), new Variant(intValue));
 	}
@@ -24,6 +28,10 @@ public class OleUtil {
 	public static Variant invokeByName(OleAutomation auto, String name, int intValue) {
 		Variant[] vArgs =  new Variant[1];
 		vArgs[0] = new Variant(intValue);
+		return auto.invoke(id(auto, name), vArgs);
+	}
+
+	public static Variant invokeByName(OleAutomation auto, String name, Variant[] vArgs) {
 		return auto.invoke(id(auto, name), vArgs);
 	}
 
