@@ -44,7 +44,15 @@ public class Handler implements HttpHandler {
 		} else if ("/ajax".equals(uri.getPath())) {
 			response = "" + pageNo;
 		}
+		t.getResponseHeaders().add("Cache-Control", "no-cache");	// キャッシュしてリクエストが飛ばなくなるのを回避。IE対策。
 		t.sendResponseHeaders(200, response.length());
+
+		System.out.println("----------------");
+		for (Map.Entry<String, List<String>> h : t.getResponseHeaders().entrySet()) {
+			System.out.println(h.getKey() + ":" + h.getValue());
+		}
+
+
 		OutputStream os = t.getResponseBody();
 		os.write(response.getBytes());
 		os.close();
@@ -150,14 +158,15 @@ public class Handler implements HttpHandler {
 				+ "<HEAD>\n"
 				+ "<meta http-equiv=\"Content-Type\" content=\"text/html;charset=UTF-8\" />\n"
 				+ "<script type=\"text/javascript\">\n"
-				+ "function sendCommand(command) {"
-				+ "  var ajax = new XMLHttpRequest();"
-				+ "  ajax.onreadystatechange = function() {"
-				+ "    if (ajax.readyState == 4 && ajax.status == 200) {"
-				+ "      var pageNo = ajax.responseText;"
-				+ "      setPageNo(pageNo);"
-				+ "    }"
-				+ "  };"
+				+ "function sendCommand(command) {\n"
+				+ "  var ajax = createAjax();\n"
+				+ "  if (ajax == null) return;\n"
+				+ "  ajax.onreadystatechange = function() {\n"
+				+ "    if (ajax.readyState == 4 && ajax.status == 200) {\n"
+				+ "      var pageNo = ajax.responseText;\n"
+				+ "      setPageNo(pageNo);\n"
+				+ "    }\n"
+				+ "  };\n"
 				+ "  ajax.open('get', '/ajax?CMD=' + command, true );"
 				+ "  ajax.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');"
 				+ "  ajax.send(null);"
@@ -167,6 +176,19 @@ public class Handler implements HttpHandler {
 				+ "};\n"
 				+ "function getPageNo() {"
 				+ "  return document.PANEL.PAGE.value;"
+				+ "};\n"
+				+ "function createAjax() {"
+				+ "  try {\n"
+				+ "    var ajax = new XMLHttpRequest();\n"
+				+ "    return ajax;\n"
+				+ "  } catch(e) {\n"
+				+ "    try {\n"
+				+ "      var ajax = new ActiveXObject('Microsoft.XMLHTTP');\n"
+				+ "      return ajax;\n"
+				+ "    } catch(e) {\n"
+				+ "    }\n"
+				+ "  }\n"
+				+ "  return null;"
 				+ "};\n"
 				+ "</script>"
 				+ "<TITLE>PowerPoint Controler</TITLE>\n"
