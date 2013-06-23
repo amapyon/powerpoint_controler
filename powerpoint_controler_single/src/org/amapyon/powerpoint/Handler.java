@@ -99,22 +99,18 @@ public class Handler implements HttpHandler {
 			}
 
 			if ("START".equals(command)) {
-				String presentationNo = getParameter(query, "PRESENTATION");
-				System.out.println("PRESENTSTION=" + presentationNo);
-				Presentation p;
-				if (presentationNo == null || presentationNo.equals("")) {
-					p = Application.getInstance().getActivePresentation();
-				} else {
-					int presentation = Integer.parseInt(getParameter(query, "PRESENTATION"));
-					p = Application.getInstance().getPresentations().getItem(presentation);
-				}
+				Presentation p = getSelectedPresentation(query);
 
 				if (p != null) {
 					slideShow = p.run();
 				}
 			} else if ("CONT".equals(command)) {
-				slideShow = Application.getInstance().getActivePresentation().run();
-				slideShow.gotoSlide(lastPage);
+				Presentation p = getSelectedPresentation(query);
+
+				if (p != null) {
+					slideShow = p.run();
+					slideShow.gotoSlide(lastPage);
+				}
 			} else if ("STOP".equals(command)) {
 				if (slideShow != null) {
 					lastPage = slideShow.getCurrentShowPosition();
@@ -169,6 +165,19 @@ public class Handler implements HttpHandler {
 			return 0;
 		}
 		return slideShow.getCurrentShowPosition();
+	}
+
+	private Presentation getSelectedPresentation(String query) {
+		String presentationNo = getParameter(query, "PRESENTATION");
+		System.out.println("PRESENTSTION=" + presentationNo);
+		Presentation p;
+		if (presentationNo == null || presentationNo.equals("")) {
+			p = Application.getInstance().getActivePresentation();
+		} else {
+			int presentation = Integer.parseInt(getParameter(query, "PRESENTATION"));
+			p = Application.getInstance().getPresentations().getItem(presentation);
+		}
+		return p;
 	}
 
 	private String getParameter(String query, String name) {
@@ -234,7 +243,7 @@ public class Handler implements HttpHandler {
 		html.append(listbox() + "\n");
 		html.append("<BR />\n");
 		html.append(button("START", "font-size:56px;width:300px;height:120px", "sendCommand('START&PRESENTATION=' + getPresentationNo())") + "\n");
-		html.append(button("CONT") + "\n");
+		html.append(button("CONT", "font-size:56px;width:300px;height:120px", "sendCommand('CONT&PRESENTATION=' + getPresentationNo())") + "\n");
 		html.append(button("STOP") + "\n");
 		html.append("<BR />\n");
 		html.append("<BR />\n");
