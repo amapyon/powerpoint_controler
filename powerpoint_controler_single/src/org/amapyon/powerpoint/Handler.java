@@ -43,7 +43,7 @@ public class Handler implements HttpHandler {
 
 		t.getResponseHeaders().add("Cache-Control", "no-cache");	// キャッシュしてリクエストが飛ばなくなるのを回避。IE対策。
 		if ("/".equals(uri.getPath())) {
-			byte[] responseHtml = html(pageNo).getBytes();
+			byte[] responseHtml = html(pageNo).getBytes("UTF-8");
 			t.sendResponseHeaders(200, responseHtml.length);
 
 			System.out.println("-------HTML Response---------");
