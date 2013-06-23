@@ -22,7 +22,8 @@ public class Handler implements HttpHandler {
 	private static int lastPage = 0;
 
 	@Override
-	public void handle(HttpExchange t) throws IOException {
+	public void handle(HttpExchange t) {
+		System.out.println("-------Request---------");
 		Headers headers = t.getRequestHeaders();
 		for (Map.Entry<String, List<String>> h : headers.entrySet()) {
 			System.out.println(h.getKey() + ":" + h.getValue());
@@ -38,24 +39,37 @@ public class Handler implements HttpHandler {
  		InputStream is = t.getRequestBody();
  		read(is);
 
-		String response = "";
-		if ("/".equals(uri.getPath())) {
-			response = html(pageNo);
-		} else if ("/ajax".equals(uri.getPath())) {
-			response = "" + pageNo;
-		}
+ 		try {
+
 		t.getResponseHeaders().add("Cache-Control", "no-cache");	// キャッシュしてリクエストが飛ばなくなるのを回避。IE対策。
-		t.sendResponseHeaders(200, response.length());
+		if ("/".equals(uri.getPath())) {
+			byte[] responseHtml = html(pageNo).getBytes();
+			t.sendResponseHeaders(200, responseHtml.length);
 
-		System.out.println("----------------");
-		for (Map.Entry<String, List<String>> h : t.getResponseHeaders().entrySet()) {
-			System.out.println(h.getKey() + ":" + h.getValue());
+			System.out.println("-------HTML Response---------");
+			for (Map.Entry<String, List<String>> h : t.getResponseHeaders().entrySet()) {
+				System.out.println(h.getKey() + ":" + h.getValue());
+			}
+
+			OutputStream os = t.getResponseBody();
+			os.write(responseHtml);
+			os.close();
+		} else if ("/ajax".equals(uri.getPath())) {
+			String response = "" + pageNo;
+			t.sendResponseHeaders(200, response.length());
+
+			System.out.println("-------Ajax Response---------");
+			for (Map.Entry<String, List<String>> h : t.getResponseHeaders().entrySet()) {
+				System.out.println(h.getKey() + ":" + h.getValue());
+			}
+			OutputStream os = t.getResponseBody();
+			os.write(response.getBytes());
+			os.close();
 		}
 
-
-		OutputStream os = t.getResponseBody();
-		os.write(response.getBytes());
-		os.close();
+ 		} catch(Exception e) {
+ 			e.printStackTrace();
+ 		}
 
 	}
 
@@ -79,12 +93,22 @@ public class Handler implements HttpHandler {
 	private int process(String query) {
 		try {
 			String command = getParameter(query, "CMD");
+			System.out.println("CMD=" + command);
 			if (command == null) {
 				return 0;
 			}
 
 			if ("START".equals(command)) {
-				Presentation p = Application.getInstance().getActivePresentation();
+				String presentationNo = getParameter(query, "PRESENTATION");
+				System.out.println("PRESENTSTION=" + presentationNo);
+				Presentation p;
+				if (presentationNo == null || presentationNo.equals("")) {
+					p = Application.getInstance().getActivePresentation();
+				} else {
+					int presentation = Integer.parseInt(getParameter(query, "PRESENTATION"));
+					p = Application.getInstance().getPresentations().getItem(presentation);
+				}
+
 				if (p != null) {
 					slideShow = p.run();
 				}
@@ -100,9 +124,17 @@ public class Handler implements HttpHandler {
 			} else if ("PREV".equals(command)) {
 				if (slideShow != null) {
 					slideShow.previous();
+				} else {
+					slideShow = Application.getInstance().getActivePresentation().run();
+					slideShow.gotoSlide(lastPage);
+					slideShow.previous();
 				}
 			} else if ("NEXT".equals(command)) {
 				if (slideShow != null) {
+					slideShow.next();
+				} else {
+					slideShow = Application.getInstance().getActivePresentation().run();
+					slideShow.gotoSlide(lastPage);
 					slideShow.next();
 				}
 			} else if ("JUMP".equals(command)) {
@@ -153,74 +185,104 @@ public class Handler implements HttpHandler {
 	}
 
 	private String html(int page) {
-		String html = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
-				+ "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"ja\" lang=\"ja\">\n"
-				+ "<HEAD>\n"
-				+ "<meta http-equiv=\"Content-Type\" content=\"text/html;charset=UTF-8\" />\n"
-				+ "<script type=\"text/javascript\">\n"
-				+ "function sendCommand(command) {\n"
-				+ "  var ajax = createAjax();\n"
-				+ "  if (ajax == null) return;\n"
-				+ "  ajax.onreadystatechange = function() {\n"
-				+ "    if (ajax.readyState == 4 && ajax.status == 200) {\n"
-				+ "      var pageNo = ajax.responseText;\n"
-				+ "      setPageNo(pageNo);\n"
-				+ "    }\n"
-				+ "  };\n"
-				+ "  ajax.open('get', '/ajax?CMD=' + command, true );"
-				+ "  ajax.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');"
-				+ "  ajax.send(null);"
-				+ "};\n"
-				+ "function setPageNo(pageNo) {"
-				+ "  document.PANEL.PAGE.value=pageNo;"
-				+ "};\n"
-				+ "function getPageNo() {"
-				+ "  return document.PANEL.PAGE.value;"
-				+ "};\n"
-				+ "function createAjax() {"
-				+ "  try {\n"
-				+ "    var ajax = new XMLHttpRequest();\n"
-				+ "    return ajax;\n"
-				+ "  } catch(e) {\n"
-				+ "    try {\n"
-				+ "      var ajax = new ActiveXObject('Microsoft.XMLHTTP');\n"
-				+ "      return ajax;\n"
-				+ "    } catch(e) {\n"
-				+ "    }\n"
-				+ "  }\n"
-				+ "  return null;"
-				+ "};\n"
-				+ "</script>"
-				+ "<TITLE>PowerPoint Controler</TITLE>\n"
-				+ "</HEAD>\n"
-				+ "<BODY>\n"
-				+ "<FORM METHOD=\"GET\" NAME=\"PANEL\">\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"START\" STYLE=\"font-size:56px;width:300px;height:120px\" onClick=\"sendCommand('START')\">\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"CONT\" STYLE=\"font-size:56px;width:300px;height:120px\" onClick=\"sendCommand('CONT')\">\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"STOP\" STYLE=\"font-size:56px;width:300px;height:120px\" onClick=\"sendCommand('STOP')\">\n"
-				+ "<BR />\n"
-				+ "<BR />\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"FIRST\" STYLE=\"font-size:56px;width:300px;height:120px\" onClick=\"sendCommand('FIRST')\">\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"LAST\" STYLE=\"font-size:56px;width:300px;height:120px\" onClick=\"sendCommand('LAST')\">\n"
-				+ "<BR />\n"
-				+ "<BR />\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"BLACK\" STYLE=\"font-size:56px;width:300px;height:120px\" onClick=\"sendCommand('BLACK')\">\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"WHITE\" STYLE=\"font-size:56px;width:300px;height:120px\" onClick=\"sendCommand('WHITE')\">\n"
-				+ "<BR />\n"
-				+ "<BR />\n"
-				+ "<INPUT TYPE=\"TEXT\" NAME=\"PAGE\" VALUE=\"" + page + "\" STYLE=\"font-size:56px;width:300px;height:80px\">\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"JUMP\" STYLE=\"font-size:56px;width:300px;height:120px\" onClick=\"sendCommand('JUMP&PAGE=' + getPageNo())\">\n"
-				+ "<BR />\n"
-				+ "<BR />\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"PREV\" STYLE=\"font-size:56px;width:300px;height:240px\" onClick=\"sendCommand('PREV')\">\n"
-				+ "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"NEXT\" STYLE=\"font-size:56px;width:300px;height:240px\" onClick=\"sendCommand('NEXT')\">\n"
-				+ "<BR />\n"
-				+ "<BR />\n"
-				+ "</FORM>\n"
-				+ "</BODY>\n"
-				+ "</html>\n";
+		StringBuilder html = new StringBuilder();
+		html.append("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n");
+		html.append("<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"ja\" lang=\"ja\">\n");
+		html.append("<HEAD>\n");
+		html.append("<meta http-equiv=\"Content-Type\" content=\"text/html;charset=UTF-8\" />\n");
+		html.append("<script type=\"text/javascript\">\n");
+		html.append("function sendCommand(command) {\n");
+		html.append("  var ajax = createAjax();\n");
+		html.append("  if (ajax == null) return;\n");
+		html.append("  ajax.onreadystatechange = function() {\n");
+		html.append("    if (ajax.readyState == 4 && ajax.status == 200) {\n");
+		html.append("      var pageNo = ajax.responseText;\n");
+		html.append("      setPageNo(pageNo);\n");
+		html.append("    }\n");
+		html.append("  };\n");
+		html.append("  ajax.open('get', '/ajax?CMD=' + command, true );");
+		html.append("  ajax.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');");
+		html.append("  ajax.send(null);");
+		html.append("};\n");
+		html.append("function setPageNo(pageNo) {");
+		html.append("  document.PANEL.PAGE.value=pageNo;");
+		html.append("};\n");
+		html.append("function getPageNo() {");
+		html.append("  return document.PANEL.PAGE.value;");
+		html.append("};\n");
+		html.append("function getPresentationNo() {");
+		html.append("  return document.PANEL.PRESENTATION.value;");
+		html.append("};\n");
+		html.append("function createAjax() {");
+		html.append("  try {\n");
+		html.append("    var ajax = new XMLHttpRequest();\n");
+		html.append("    return ajax;\n");
+		html.append("  } catch(e) {\n");
+		html.append("    try {\n");
+		html.append("      var ajax = new ActiveXObject('Microsoft.XMLHTTP');\n");
+		html.append("      return ajax;\n");
+		html.append("    } catch(e) {\n");
+		html.append("    }\n");
+		html.append("  }\n");
+		html.append("  return null;");
+		html.append("};\n");
+		html.append("</script>");
+		html.append("<TITLE>PowerPoint Controler</TITLE>\n");
+		html.append("</HEAD>\n");
+		html.append("<BODY>\n");
+		html.append("<FORM METHOD=\"GET\" NAME=\"PANEL\">\n");
+		html.append(listbox() + "\n");
+		html.append("<BR />\n");
+		html.append(button("START", "font-size:56px;width:300px;height:120px", "sendCommand('START&PRESENTATION=' + getPresentationNo())") + "\n");
+		html.append(button("CONT") + "\n");
+		html.append(button("STOP") + "\n");
+		html.append("<BR />\n");
+		html.append("<BR />\n");
+		html.append(button("FIRST") + "\n");
+		html.append(button("LAST") + "\n");
+		html.append("<BR />\n");
+		html.append("<BR />\n");
+		html.append(button("BLACK") + "\n");
+		html.append(button("WHITE") + "\n");
+		html.append("<BR />\n");
+		html.append("<BR />\n");
+		html.append("<INPUT TYPE=\"TEXT\" NAME=\"PAGE\" VALUE=\"" + page + "\" STYLE=\"font-size:56px;width:300px;height:80px\">\n");
+		html.append(button("JUMP", "font-size:56px;width:300px;height:120px", "sendCommand('JUMP&PAGE=' + getPageNo())") + "\n");
+		html.append("<BR />\n");
+		html.append("<BR />\n");
+		html.append(button("PREV", "font-size:56px;width:300px;height:240px") + "\n");
+		html.append(button("NEXT", "font-size:56px;width:300px;height:240px") + "\n");
+		html.append("<BR />\n");
+		html.append("<BR />\n");
+		html.append("</FORM>\n");
+		html.append("</BODY>\n");
+		html.append("</html>\n");
 
-		return html;
+		return html.toString();
+	}
+
+	private String button(String title) {
+		return button(title, "font-size:56px;width:300px;height:120px");
+	}
+
+	private String button(String title, String style) {
+		return button(title, style, String.format("sendCommand('%s')", title));
+	}
+
+	private String button(String title, String style, String command) {
+		return  "<INPUT TYPE=\"BUTTON\" NAME=\"CMD\" VALUE=\"" + title + "\" STYLE=\"" + style + "\" onClick=\"" + command + "\">\n";
+	}
+
+	private String listbox() {
+		String str = "<SELECT name=\"PRESENTATION\" size=\"1\" style=\"font-size:28px\">\n";
+
+		int i = 1;
+		for (Presentation p : Application.getInstance().getPresentations()) {
+			str += String.format("<OPTION value=\"%d\" style=\"font-size:28px\">%s</OPTION>%n", i++, p.getName());
+		}
+
+		str += "</SELECT>\n";
+		return str;
 	}
 
 }

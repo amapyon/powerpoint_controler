@@ -1,0 +1,1 @@
+cmd.exe /k java -cp .\ppc_lib\;.\ppc.jar org.amapyon.powerpoint.Main

@@ -18,6 +18,7 @@ public class Server {
 	}
 
 	public void start() {
+		System.out.println(server.getAddress() + " Start");
 		server.start();
 	}
 

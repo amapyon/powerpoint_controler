@@ -3,8 +3,6 @@ package org.amapyon.powerpoint.model;
 import static org.amapyon.util.OleUtil.getPropertyByName;
 import static org.amapyon.util.OleUtil.invokeByName;
 
-import java.util.ArrayList;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.ole.win32.OleAutomation;
 import org.eclipse.swt.ole.win32.OleControlSite;

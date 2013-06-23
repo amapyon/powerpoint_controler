@@ -3,6 +3,8 @@ package org.amapyon.powerpoint.model;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 
+import java.util.Iterator;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,10 +44,29 @@ public class PresentationsTest {
 		String name1 = p1.getName();
 		Presentation p2 = ps.add();
 		String name2 = p2.getName();
-		assertThat(ps.getItem(1).getName(), is(name1));
-		assertThat(ps.getItem(2).getName(), is(name2));
-		p1.close();
-		p2.close();
+		try {
+			assertThat(ps.getItem(1).getName(), is(name1));
+			assertThat(ps.getItem(2).getName(), is(name2));
+		} finally {
+			p1.close();
+			p2.close();
+		}
 	}
 
+	@Test
+	public void testItretor() {
+		Presentations ps = app.getPresentations();
+		Presentation p1 = ps.add();
+		Presentation p2 = ps.add();
+
+		try {
+			Iterator<Presentation> i = ps.iterator();
+			assertThat(i.next().getName(), is(p1.getName()));
+			assertThat(i.next().getName(), is(p2.getName()));
+
+		} finally {
+			p1.close();
+			p2.close();
+		}
+	}
 }
