@@ -99,6 +99,11 @@ public class Handler implements HttpHandler {
 			}
 
 			if ("START".equals(command)) {
+				Application apl = Application.getInstance();
+				apl.setWindowState(Application.ppWindowMinimized);
+				apl.activate();
+				apl.setWindowState(Application.ppWindowMaximized);
+
 				Presentation p = getSelectedPresentation(query);
 
 				if (p != null) {

@@ -20,6 +20,9 @@ public class OleUtil {
 		return auto.setProperty(id(auto, name), new Variant(intValue));
 	}
 
+	public static boolean setPropertyByName(OleAutomation auto, String name, boolean boolValue) {
+		return auto.setProperty(id(auto, name), new Variant(boolValue));
+	}
 
 	public static Variant invokeByName(OleAutomation auto, String name) {
 		return auto.invoke(id(auto, name));
